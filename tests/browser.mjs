@@ -8,6 +8,8 @@ page.on('pageerror',error => errors.push(error.message));
 async function centeredPause() {
   await page.waitForFunction(() => window.spaceAttack.mode === 'paused');
   await page.locator('#title').filter({hasText:'PAUSED'}).waitFor({state:'visible'});
+  assert.equal((await page.locator('#overlay').innerText()).trim(),'PAUSED');
+  await page.screenshot({path:'../../work/paused.png'});
   const title = await page.locator('#title').boundingBox();
   const game = await page.locator('#game').boundingBox();
   assert.ok(Math.abs(title.x + title.width / 2 - game.x - game.width / 2) < 5);
@@ -107,6 +109,7 @@ try {
   await fallback.evaluate(() => {const w = window.spaceAttack; w.kill(w.enemies[0]);});
   assert.equal(await fallback.evaluate(() => window.spaceAttack.high),60);
   const downloadPromise = fallback.waitForEvent('download');
+  await fallback.locator('#settings summary').click();
   await fallback.getByRole('button',{name:'EXPORT SCORE'}).click();
   const download = await downloadPromise;
   assert.equal(download.suggestedFilename(),'space-attack-score.json');

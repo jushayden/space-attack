@@ -1,2 +1,34 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080a09"><title>Space Attack</title></head><body><main><header><a class="brand" href="./">SPACE<span>ATTACK</span></a><div class="edition">ARCADE / 01</div><button id="sound" aria-pressed="false">SOUND OFF</button></header><section class="cabinet" aria-label="Space Attack arcade game"><div class="hud"><div><span>SCORE</span><strong id="score">000000</strong></div><div class="best"><span>HIGH SCORE</span><strong id="best">000000</strong></div><div><span>WAVE</span><strong id="wave">01</strong></div></div><div id="game" role="application" aria-label="Move with A and D or arrow keys. Fire with Space or left click."></div><div id="overlay"><p id="eyebrow">EARTH NEEDS A PILOT</p><h1 id="title">SPACE<br><span>ATTACK</span></h1><p id="message">One ship. One shot. Hold the line.</p><button id="start">START GAME <span>↵</span></button><p class="hint" id="hint">PRESS ENTER TO START</p></div><footer><div><i></i><span id="status">READY TO LAUNCH</span></div><div class="reserves"><span>SPARE SHIPS</span><div id="lives" aria-label="2 spare ships"></div></div></footer></section><div class="controls"><div><kbd>A</kbd><kbd>D</kbd><span> / </span><kbd>←</kbd><kbd>→</kbd><span>MOVE</span></div><div><kbd>SPACE</kbd><span> / LEFT CLICK</span><span>FIRE</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></div><div class="bottom"><span>DEFEND. SURVIVE. REPEAT.</span><span>ONE ACTIVE SHOT · THREE SHIPS</span></div></main><script type="module" src="/src/main.ts"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Space Attack</title>
+</head>
+<body>
+  <main>
+    <section class="cabinet" aria-label="Space Attack arcade game">
+      <div class="hud">
+        <strong id="score" aria-label="Score" title="Score">000000</strong>
+        <strong id="best" aria-label="High score" title="High score">000000</strong>
+      </div>
+      <div id="game" role="application" aria-label="Move with A and D or arrow keys. Fire with Space or left click. Enter starts or restarts. Escape pauses."></div>
+      <div id="overlay">
+        <h1 id="title">SPACE ATTACK</h1>
+        <button id="start">START GAME</button>
+      </div>
+      <footer>
+        <div id="lives" aria-label="2 spare ships"></div>
+        <strong id="wave" aria-label="Wave" title="Wave">1</strong>
+      </footer>
+    </section>
+    <details id="settings">
+      <summary>SETTINGS</summary>
+      <div id="settings-body"><button id="sound" aria-pressed="false">SOUND OFF</button></div>
+    </details>
+    <p id="save-status" role="status"></p>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

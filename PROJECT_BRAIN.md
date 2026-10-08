@@ -10,6 +10,8 @@ Spare ships use the same sprite pattern and proportional screen size as the play
 
 `src/scores.ts` validates scores, merges the highest local/cookie/session copy, writes redundant backups, and falls back to memory. Export/import JSON preserves the score when browser persistence is blocked. Storage state is visible in the page's score backup controls.
 
+Reference UI: unframed black screen, yellow score digits at the top, green spare ships and red wave number at bottom right. No branding bar, slogans, status strip, or control legend. Pause displays only PAUSED. Sound and score backup controls sit in a collapsed Settings menu. Player silhouette uses the reference's central turret, narrow stem, and flat wide base, with no exhaust effect.
+
 Scoring uses observed row values, with remaining reference uncertainties documented in docs/scoring.md. Do not reproduce repeated post-kill score bursts without new evidence establishing their cause.
 
 Validation: npm test, npm run build, and tests/browser.mjs with local Vite running. GitHub upload requires the exact destination approval requested by automatic review. No public hosting has been configured.

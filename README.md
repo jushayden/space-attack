@@ -19,7 +19,8 @@ Open the URL printed by Vite. For a production build, run `npm run build`, then 
 | --- | --- |
 | Move | A / D or Left / Right Arrow |
 | Fire | Hold Space or left mouse button inside the playfield |
-| Start, restart, resume | Enter or the screen button |
+| Start, restart | Enter or the screen button |
+| Resume | Enter or Escape |
 | Pause, resume | Escape |
 
 Opposite directions cancel, including mixed keyboard bindings. Movement has constant speed and stops on release. Space and mouse share one projectile slot. A new shot becomes available after the previous shot hits or exits the screen.

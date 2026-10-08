@@ -39,8 +39,8 @@ function action() {
 $('start').addEventListener('click', action);
 const backup = document.createElement('div');
 backup.className = 'score-backup';
-backup.innerHTML = '<span id="save-status"></span><button id="export-score">EXPORT SCORE</button><button id="import-score">IMPORT SCORE</button><input id="score-file" type="file" accept="application/json,.json" hidden>';
-document.querySelector('main')!.append(backup);
+backup.innerHTML = '<button id="export-score">EXPORT SCORE</button><button id="import-score">IMPORT SCORE</button><input id="score-file" type="file" accept="application/json,.json" hidden>';
+$('settings-body').append(backup);
 $('export-score').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([scores.export()], {type:'application/json'}));
   const link = document.createElement('a'); link.href = url; link.download = 'space-attack-score.json'; link.click();
@@ -77,7 +77,7 @@ const patterns = [
   ['00100000100','01111111110','01111111110','01101110110','01111111110','00111111100','01100100110','11000000011'],
   ['10000000001','11000100011','01111111110','01101110110','00111111100','00011111000','00001110000','00000100000'],
 ];
-const player = ['00000100000','00001110000','00011111000','00111111100','11111111111','11111111111','11110001111'];
+const player = ['00000100000','00001110000','00111111100','00000100000','10000100001','11111111111','11000000011'];
 const spareSprite = `<svg class="ship" viewBox="0 0 11 7" aria-hidden="true">${player.flatMap((row,y) => [...row].flatMap((pixel,x) => pixel === '1' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : [])).join('')}</svg>`;
 function diverColor(color: number) {
   return (Math.floor((color >> 16 & 255) * .7) << 16) | (Math.floor((color >> 8 & 255) * .7) << 8) | Math.floor((color & 255) * .7);
@@ -86,10 +86,8 @@ class Arcade extends Phaser.Scene {
   accumulator = 0;
   g!: Phaser.GameObjects.Graphics;
   stars = Array.from({length:90},(_,i) => ({x:(i*137.23)%WIDTH,y:(i*91.7)%HEIGHT,size:i%5===0?2:1}));
-  banner!: Phaser.GameObjects.Text;
   create() {
     this.g = this.add.graphics();
-    this.banner = this.add.text(WIDTH/2, HEIGHT/2, '', {fontFamily:'monospace',fontSize:'23px',color:'#e0ed98',align:'center'}).setOrigin(.5);
   }
   sprite(pattern: string[], x: number, y: number, color: number, size = 3) {
     this.g.fillStyle(color);
@@ -113,7 +111,6 @@ class Arcade extends Phaser.Scene {
     world.enemies.forEach(e => this.sprite(patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
     if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) {
       this.sprite(player,world.x,PLAYER_Y,0x75d6df);
-      this.g.fillStyle(0xe3e29a); this.g.fillRect(world.x-3,PLAYER_Y+12,6,4+Math.sin(world.age*40)*2);
     }
     if (world.shot) { this.g.fillStyle(0xf7f5c0); this.g.fillRect(world.shot.x-2,world.shot.y-10,4,17); }
     world.bullets.forEach(b => { this.g.fillStyle(0xff8d73); this.g.fillRect(b.x-2,b.y-5,4,12); });
@@ -140,19 +137,18 @@ class Arcade extends Phaser.Scene {
         }
       }
     });
-    this.banner.setText(world.respawn>0?'SHIP LOST':world.awaitingEntry?'← / A   ENTER SECTOR   D / →':'');
-    $('score').textContent=String(world.score).padStart(6,'0'); $('best').textContent=String(world.high).padStart(6,'0'); $('wave').textContent=String(world.wave).padStart(2,'0');
+    $('score').textContent=String(world.score).padStart(6,'0'); $('best').textContent=String(world.high).padStart(6,'0'); $('wave').textContent=String(world.wave);
     const spare = Math.max(0,world.lives-1);
     if ($('lives').childElementCount!==spare) $('lives').innerHTML=spareSprite.repeat(spare);
     $('lives').setAttribute('aria-label', `${spare} spare ships`);
-    $('status').textContent=world.mode==='playing'?(world.respawn>0?'SHIP LOST':world.awaitingEntry?'MOVE TO ENTER SECTOR':world.entryDirection?'ENTERING SECTOR':'DEFEND THE SECTOR'):world.mode==='paused'?'FLIGHT PAUSED':world.mode==='over'?'SIGNAL LOST':'READY TO LAUNCH';
     if (scores.status !== 'persistent') $('save-status').textContent = scores.status === 'session' ? 'TEMPORARY SAVE · EXPORT TO KEEP' : 'STORAGE UNAVAILABLE · EXPORT TO KEEP';
     const displayMode = world.mode === 'over' && world.respawn > 0 ? 'dying' : world.mode;
     if(previousMode !== displayMode){
       previousMode=displayMode;
+      $('overlay').classList.toggle('paused',displayMode==='paused');
       $('overlay').classList.toggle('hidden',displayMode==='playing' || displayMode==='dying');
-      if(world.mode==='paused') { $('eyebrow').textContent='FLIGHT ON HOLD'; $('title').innerHTML='PAUSED'; $('message').textContent='Take a breath. Your sector can wait.'; $('start').innerHTML='RESUME <span>↵</span>'; $('hint').textContent='ENTER OR ESC TO RESUME'; }
-      if(world.mode==='over') { $('eyebrow').textContent='TRANSMISSION ENDED'; $('title').innerHTML='GAME<br><span>OVER</span>'; $('message').textContent=`SCORE ${String(world.score).padStart(6,'0')} · WAVE ${world.wave}`; $('start').innerHTML='PLAY AGAIN <span>↵</span>'; $('hint').textContent='PRESS ENTER TO RESTART'; }
+      if(world.mode==='paused') { $('title').textContent='PAUSED'; }
+      if(world.mode==='over') { $('title').textContent='GAME OVER'; $('start').textContent='PLAY AGAIN'; }
     }
   }
 }
