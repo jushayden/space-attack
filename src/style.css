@@ -39,3 +39,4 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #e5e94f; outlin
   #overlay { top: 42px; gap: 18px; }
   #start { font-size: 12px; }
 }
+#fuel{display:flex;align-items:center;gap:8px;margin-right:auto;width:43%;font-size:clamp(18px,3.5vw,28px);color:#e9382e}.fuel-track{height:14px;width:100%}#fuel-fill{height:100%;background:#56e641}#fuel.low #fuel-fill{background:#e9382e}

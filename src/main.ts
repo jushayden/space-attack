@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import './style.css';
-import { World, WIDTH, HEIGHT, PLAYER_Y, direction, COLORS } from './model';
+import { World, WIDTH, HEIGHT, PLAYER_Y, direction, COLORS, FUEL_DURATION, LOW_FUEL } from './model';
 import { browserScores } from './scores';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -29,6 +29,9 @@ world.onEvent = event => {
   if (event === 'hit') tone(180, .11, 55);
   if (event === 'damage') tone(110, .35, 22);
   if (event === 'wave') tone(300, .3, 900);
+  if (event === 'bonus') tone(500, .4, 1100);
+  if (event === 'cancel') tone(260, .045, 110);
+  if (event === 'fuel-warning') tone(180, .12, 180);
   if (world.high !== savedHigh) { savedHigh = world.high; scores.save(savedHigh); }
 };
 function action() {
@@ -138,6 +141,10 @@ class Arcade extends Phaser.Scene {
       }
     });
     $('score').textContent=String(world.score).padStart(6,'0'); $('best').textContent=String(world.high).padStart(6,'0'); $('wave').textContent=String(world.wave);
+    const fuelRatio = world.fuel/FUEL_DURATION;
+    $('fuel-fill').style.width = `${fuelRatio*100}%`;
+    $('fuel').setAttribute('aria-valuenow',String(Math.round(fuelRatio*100)));
+    $('fuel').classList.toggle('low',fuelRatio<=LOW_FUEL);
     const spare = Math.max(0,world.lives-1);
     if ($('lives').childElementCount!==spare) $('lives').innerHTML=spareSprite.repeat(spare);
     $('lives').setAttribute('aria-label', `${spare} spare ships`);
