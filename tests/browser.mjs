@@ -9,6 +9,10 @@ async function centeredPause() {
   await page.waitForFunction(() => window.spaceAttack.mode === 'paused');
   await page.locator('#title').filter({hasText:'PAUSED'}).waitFor({state:'visible'});
   assert.equal((await page.locator('#overlay').innerText()).trim(),'PAUSED');
+  assert.equal(await page.evaluate(() => window.spaceAttackGame.loop.running),false);
+  const frame = await page.evaluate(() => window.spaceAttackGame.loop.frame);
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => window.spaceAttackGame.loop.frame),frame);
   await page.screenshot({path:'../../work/paused.png'});
   const title = await page.locator('#title').boundingBox();
   const game = await page.locator('#game').boundingBox();

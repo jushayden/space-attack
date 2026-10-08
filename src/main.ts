@@ -3,7 +3,17 @@ import './style.css';
 import { World, WIDTH, HEIGHT, PLAYER_Y, direction, COLORS, FUEL_DURATION, LOW_FUEL } from './model';
 import { browserScores } from './scores';
 
-const $ = (id: string) => document.getElementById(id)!;
+const elements = new Map<string, HTMLElement>();
+const $ = (id: string) => {
+  let element = elements.get(id);
+  if (!element) { element = document.getElementById(id)!; elements.set(id, element); }
+  return element;
+};
+function text(id: string, value: string) { if ($(id).textContent !== value) $(id).textContent = value; }
+function attribute(id: string, name: string, value: string) { if ($(id).getAttribute(name) !== value) $(id).setAttribute(name, value); }
+function wake() {
+  if (!game.loop.running) { game.loop.resetDelta(); game.loop.wake(); }
+}
 const world = new World();
 const scores = browserScores();
 world.high = scores.value;
@@ -39,6 +49,7 @@ function action() {
   keys.clear(); mouse = false;
   if (world.mode === 'paused') world.resume(); else if (world.mode === 'ready' || (world.mode === 'over' && world.respawn <= 0)) world.start();
   ($('start') as HTMLButtonElement).blur();
+  wake();
 }
 $('start').addEventListener('click', action);
 function exportScore() {
@@ -56,6 +67,7 @@ $('score-file').addEventListener('change', async () => {
     $('save-status').textContent = 'SCORE RESTORED';
   } catch { $('save-status').textContent = 'INVALID SCORE BACKUP'; }
   input.value = '';
+  wake();
 });
 window.addEventListener('keydown', event => {
   if (event.altKey && event.shiftKey && ['KeyE','KeyI'].includes(event.code)) {
@@ -65,7 +77,7 @@ window.addEventListener('keydown', event => {
   }
   if (['Space','ArrowLeft','ArrowRight','Escape','Enter','KeyA','KeyD'].includes(event.code) && !(event.target instanceof HTMLButtonElement)) event.preventDefault();
   if (event.code === 'Enter' && !event.repeat && (!(event.target instanceof HTMLButtonElement) || world.mode === 'over')) { event.preventDefault(); action(); }
-  if (event.code === 'Escape' && !event.repeat) { if (world.mode === 'paused') world.resume(); else world.pause(); keys.clear(); mouse = false; }
+  if (event.code === 'Escape' && !event.repeat) { if (world.mode === 'paused') world.resume(); else world.pause(); keys.clear(); mouse = false; wake(); }
   if (!(event.target instanceof HTMLButtonElement)) keys.add(event.code);
 });
 window.addEventListener('keyup', event => keys.delete(event.code));
@@ -74,7 +86,9 @@ window.addEventListener('pointerup', () => mouse = false);
 window.addEventListener('pointercancel', () => mouse = false);
 function blur() { world.pause(); keys.clear(); mouse = false; }
 window.addEventListener('blur', blur);
-document.addEventListener('visibilitychange', () => { if (document.hidden) blur(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { blur(); game.loop.sleep(); } else wake();
+});
 const patterns = [
   ['00010001000','11111111111','01111111110','01101110110','00111111100','00111111100','00011011000','00110001100'],
   ['00100000100','01111111110','01111111110','01101110110','01111111110','00111111100','01100100110','11000000011'],
@@ -89,33 +103,61 @@ function diverColor(color: number) {
 class Arcade extends Phaser.Scene {
   accumulator = 0;
   g!: Phaser.GameObjects.Graphics;
+  background!: Phaser.GameObjects.Graphics;
+  sprites: Phaser.GameObjects.Image[] = [];
+  spriteCount = 0;
   stars = Array.from({length:90},() => ({x:Math.random()*WIDTH,y:Math.random()*(HEIGHT-220),size:Math.random()<.2?2:1,phase:Math.random()*Math.PI*2,bright:Math.random()<.33}));
   create() {
-    this.g = this.add.graphics();
+    this.background = this.add.graphics().setDepth(0);
+    this.g = this.add.graphics().setDepth(2);
+    const graphics = this.make.graphics({x:0,y:0});
+    const make = (key: string, pattern: string[], color: number, size: number) => {
+      const phases = size === 2.5 ? 2 : 1;
+      for (let px = 0; px < phases; px++) for (let py = 0; py < phases; py++) {
+        const ox = px / 2, oy = py / 2;
+        graphics.clear().fillStyle(color);
+        pattern.forEach((row,r) => {
+          for (let c = 0; c < row.length; c++) if (row[c] === '1') {
+            const x = Math.round(ox+c*size)-Math.round(ox);
+            const y = Math.round(oy+r*size)-Math.round(oy);
+            graphics.fillRect(x,y,Math.round(ox+(c+1)*size)-Math.round(ox)-x,Math.round(oy+(r+1)*size)-Math.round(oy)-y);
+          }
+        });
+        graphics.generateTexture(`${key}-${px}-${py}`,Math.round(ox+pattern[0].length*size)-Math.round(ox),Math.round(oy+pattern.length*size)-Math.round(oy));
+      }
+    };
+    for (let tier = 0; tier < 3; tier++) for (let variant = 0; variant < (tier === 2 ? 1 : 2); variant++) {
+      make(`${tier}-${variant}-0`,patterns[tier === 2 ? 2 : variant],COLORS[tier],3);
+      make(`${tier}-${variant}-1`,tier === 2 ? yellowDiver : patterns[variant],diverColor(COLORS[tier]),2.5);
+    }
+    make('player',player,0x75d6df,3);
+    graphics.destroy();
+    this.scale.on('resize',wake);
   }
-  sprite(pattern: string[], x: number, y: number, color: number, size = 3) {
-    this.g.fillStyle(color);
-    pattern.forEach((row,r) => [...row].forEach((pixel,c) => {
-      if (pixel !== '1') return;
-      const left = Math.round(x+(c-row.length/2)*size);
-      const top = Math.round(y+(r-pattern.length/2)*size);
-      const right = Math.round(x+(c+1-row.length/2)*size);
-      const bottom = Math.round(y+(r+1-pattern.length/2)*size);
-      this.g.fillRect(left,top,right-left,bottom-top);
-    }));
+  sprite(key: string, x: number, y: number, size = 3, rows = 8) {
+    const left = x-11*size/2, top = y-rows*size/2;
+    const px = size === 2.5 && left-Math.floor(left) >= .5 ? 1 : 0;
+    const py = size === 2.5 && top-Math.floor(top) >= .5 ? 1 : 0;
+    const texture = `${key}-${px}-${py}`;
+    let image = this.sprites[this.spriteCount];
+    if (!image) { image = this.add.image(0,0,texture).setOrigin(0).setDepth(1); this.sprites.push(image); }
+    if (image.texture.key !== texture) image.setTexture(texture);
+    image.setPosition(Math.round(left),Math.round(top)).setVisible(true);
+    this.spriteCount++;
   }
   update(_time: number, delta: number) {
-    this.accumulator += Math.min(delta/1000,.1);
+    if (!document.hidden) this.accumulator += Math.min(delta/1000,.1);
     while (this.accumulator >= 1/120) {
       world.step(1/120,direction(keys),mouse || keys.has('Space'));
       this.accumulator -= 1/120;
     }
     this.g.clear();
-    this.stars.forEach(s => { this.g.fillStyle(s.bright?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+s.phase)); this.g.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
-    world.enemies.forEach(e => this.sprite(e.tier === 2 && e.dive ? yellowDiver : patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
-    if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) {
-      this.sprite(player,world.x,PLAYER_Y,0x75d6df);
-    }
+    this.background.clear();
+    this.spriteCount = 0;
+    this.stars.forEach(s => { this.background.fillStyle(s.bright?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+s.phase)); this.background.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
+    world.enemies.forEach(e => this.sprite(`${e.tier}-${e.tier === 2 ? 0 : (e.id+Math.floor(world.age*2))%2}-${Number(e.dive)}`,e.x,e.y,e.dive ? 2.5 : 3));
+    if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) this.sprite('player',world.x,PLAYER_Y,3,7);
+    for (let i = this.spriteCount; i < this.sprites.length; i++) this.sprites[i].setVisible(false);
     if (world.shot) { this.g.fillStyle(0xf7f5c0); this.g.fillRect(world.shot.x-2,world.shot.y-10,4,17); }
     world.bullets.forEach(b => { this.g.fillStyle(0xff8d73); this.g.fillRect(b.x-2,b.y-5,4,12); });
     world.sparks.forEach(s => {
@@ -139,15 +181,16 @@ class Arcade extends Phaser.Scene {
         }
       }
     });
-    $('score').textContent=String(world.score).padStart(6,'0'); $('best').textContent=String(world.high).padStart(6,'0'); $('wave').textContent=String(world.wave);
+    text('score',String(world.score).padStart(6,'0')); text('best',String(world.high).padStart(6,'0')); text('wave',String(world.wave));
     const fuelRatio = world.fuel/FUEL_DURATION;
-    $('fuel-fill').style.width = `${fuelRatio*100}%`;
-    $('fuel').setAttribute('aria-valuenow',String(Math.round(fuelRatio*100)));
-    $('fuel').classList.toggle('low',fuelRatio<=LOW_FUEL);
+    const fuelWidth = `${Math.round(fuelRatio*1000)/10}%`;
+    if ($('fuel-fill').style.width !== fuelWidth) $('fuel-fill').style.width = fuelWidth;
+    attribute('fuel','aria-valuenow',String(Math.round(fuelRatio*100)));
+    if ($('fuel').classList.contains('low') !== (fuelRatio<=LOW_FUEL)) $('fuel').classList.toggle('low',fuelRatio<=LOW_FUEL);
     const spare = Math.max(0,world.lives-1);
     if ($('lives').childElementCount!==spare) $('lives').innerHTML=spareSprite.repeat(spare);
-    $('lives').setAttribute('aria-label', `${spare} spare ships`);
-    if (scores.status !== 'persistent') $('save-status').textContent = scores.status === 'session' ? 'TEMPORARY SAVE · ALT+SHIFT+E TO EXPORT' : 'STORAGE UNAVAILABLE · ALT+SHIFT+E TO EXPORT';
+    attribute('lives','aria-label', `${spare} spare ships`);
+    if (scores.status !== 'persistent') text('save-status',scores.status === 'session' ? 'TEMPORARY SAVE · ALT+SHIFT+E TO EXPORT' : 'STORAGE UNAVAILABLE · ALT+SHIFT+E TO EXPORT');
     const displayMode = world.mode === 'over' && world.respawn > 0 ? 'dying' : world.mode;
     if(previousMode !== displayMode){
       previousMode=displayMode;
@@ -156,7 +199,8 @@ class Arcade extends Phaser.Scene {
       if(world.mode==='paused') { $('title').textContent='PAUSED'; }
       if(world.mode==='over') { $('title').textContent='GAME OVER'; $('start').textContent='PLAY AGAIN'; }
     }
+    if (world.mode === 'paused' || world.mode === 'ready' || document.hidden) { this.accumulator = 0; this.game.loop.sleep(); }
   }
 }
-new Phaser.Game({type:Phaser.AUTO,parent:'game',width:WIDTH,height:HEIGHT,backgroundColor:'#000000',pixelArt:true,antialias:false,scene:Arcade,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},audio:{noAudio:true}});
-if (import.meta.env.DEV) Object.assign(window,{spaceAttack:world});
+const game = new Phaser.Game({type:Phaser.AUTO,parent:'game',width:WIDTH,height:HEIGHT,backgroundColor:'#000000',pixelArt:true,antialias:false,scene:Arcade,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},audio:{noAudio:true}});
+if (import.meta.env.DEV) Object.assign(window,{spaceAttack:world,spaceAttackGame:game});

@@ -121,21 +121,27 @@ export class World {
       } else { enemy.x = enemy.homeX + Math.sin(this.age * .8) * 22; enemy.y = enemy.homeY; }
     }
   }
+  ageSparks(dt: number) {
+    let count = 0;
+    for (const spark of this.sparks) {
+      spark.life -= dt;
+      if (spark.life > 0) this.sparks[count++] = spark;
+    }
+    this.sparks.length = count;
+  }
   step(dt: number, move = 0, firing = false) {
     if (this.mode === 'over') {
       dt = Math.min(dt, 1 / 30);
       this.age += dt;
       this.advanceEnemies(dt, false);
       this.respawn = Math.max(0,this.respawn - Math.min(dt,1/30));
-      this.sparks.forEach(s => s.life -= Math.min(dt, 1 / 30));
-      this.sparks = this.sparks.filter(s => s.life > 0);
+      this.ageSparks(dt);
       return;
     }
     if (this.mode !== 'playing') return;
     dt = Math.min(dt, 1 / 30);
     this.age += dt;
-    this.sparks.forEach(s => s.life -= dt);
-    this.sparks = this.sparks.filter(s => s.life > 0);
+    this.ageSparks(dt);
     if (this.respawn > 0) this.respawn = Math.max(0, this.respawn - dt);
     if (this.awaitingEntry && this.respawn <= 0 && move !== 0) {
       this.fuel = FUEL_DURATION; this.fuelEmptyTimer = FUEL_EMPTY_GRACE; this.fuelWarningTimer = 0;
@@ -170,29 +176,39 @@ export class World {
       const shot = this.shot;
       const oldY = shot.y;
       shot.y -= SHOT_SPEED * dt;
-      const hit = this.enemies.filter(e => Math.abs(e.x - shot.x) < 17 && e.y + 13 >= shot.y && e.y - 13 <= oldY).sort((a,b) => b.y - a.y)[0];
+      let hit: Enemy | undefined;
+      for (const enemy of this.enemies) {
+        if (Math.abs(enemy.x-shot.x) < 17 && enemy.y+13 >= shot.y && enemy.y-13 <= oldY && (!hit || enemy.y > hit.y)) hit = enemy;
+      }
       const hitTime = hit ? Math.max(0,(oldY-hit.y-13)/(SHOT_SPEED*dt)) : Infinity;
-      const intercepts = this.bullets.flatMap(bullet => {
-        if (bullet.y > oldY+15) return [];
+      let intercept: Shot | undefined;
+      let interceptTime = Infinity;
+      for (const bullet of this.bullets) {
+        if (bullet.y > oldY+15) continue;
         const time = Math.max(0,(oldY-bullet.y-15)/((SHOT_SPEED+settings.bulletSpeed)*dt));
-        return time <= 1 && Math.abs(bullet.x+bullet.vx*dt*time-shot.x) <= 4 ? [{bullet,time}] : [];
-      }).sort((a,b) => a.time-b.time);
-      const intercept = intercepts[0];
-      if (intercept && intercept.time <= hitTime) {
-        this.bullets = this.bullets.filter(bullet => bullet !== intercept.bullet);
+        if (time <= 1 && time < interceptTime && Math.abs(bullet.x+bullet.vx*dt*time-shot.x) <= 4) {
+          intercept = bullet; interceptTime = time;
+        }
+      }
+      if (intercept && interceptTime <= hitTime) {
+        this.bullets.splice(this.bullets.indexOf(intercept),1);
         this.shot = null; this.onEvent('cancel');
       } else if (hit) {
         this.shot = null; this.kill(hit);
       } else if (shot.y < -15) this.shot = null;
     }
-    for (const bullet of [...this.bullets]) {
+    for (const bullet of this.bullets) {
       const oldY = bullet.y;
       bullet.y += settings.bulletSpeed * dt; bullet.x += bullet.vx * dt;
       if (this.playerActive && Math.abs(bullet.x - this.x) < 17 && bullet.y + 5 >= PLAYER_Y - 13 && oldY - 5 <= PLAYER_Y + 13) {
         this.damage(); break;
       }
     }
-    this.bullets = this.bullets.filter(b => b.y < HEIGHT + 10 && b.x > -10 && b.x < WIDTH + 10);
+    let count = 0;
+    for (const bullet of this.bullets) {
+      if (bullet.y < HEIGHT+10 && bullet.x > -10 && bullet.x < WIDTH+10) this.bullets[count++] = bullet;
+    }
+    this.bullets.length = count;
     for (const enemy of this.enemies) {
       if (this.mode === 'playing' && this.playerActive && Math.abs(enemy.x - this.x) < 27 && Math.abs(enemy.y - PLAYER_Y) < 23) {
         this.kill(enemy); this.damage(); break;
@@ -208,7 +224,7 @@ export class World {
     this.diveTimer -= dt;
     if (this.diveTimer <= 0) {
       const available = this.enemies.filter(e => !e.dive);
-      const slots = 2 - this.enemies.filter(e => e.dive).length;
+      const slots = 2 - (this.enemies.length-available.length);
       for (let slot = 0; slot < slots && available.length; slot++) {
         const [enemy] = available.splice(Math.floor(this.random() * available.length), 1);
         enemy.dive = true; enemy.vx = (this.random() < .5 ? -1 : 1) * settings.diveSpeed * DIVE_RATIO;

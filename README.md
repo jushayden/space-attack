@@ -55,6 +55,20 @@ With the development server running at port 5173 and Microsoft Edge installed, `
 
 GitHub Actions runs the unit tests and production build on pushes and pull requests.
 
+## Performance
+
+Sprites use cached textures with pixel rounding preserved for the smaller divers. HUD values update only when displayed values change. The render loop sleeps while paused, on the title screen, or when the document is hidden, and wakes for input, score import, visibility changes, and resizing. Gameplay remains at 120 fixed steps per second.
+
+A four-second headless Edge sample on 2026-10-08 measured main-thread task time:
+
+| State | Before | After |
+| --- | --- | --- |
+| Active play | 634 ms | 267 ms |
+| Wave 50 | 658 ms | 269 ms |
+| Paused | 557 ms | Below 1 ms |
+
+Paused DOM mutations fell from 3,300 to zero. These short development-build samples indicate reduced browser work; they are not GPU, battery, or cross-device benchmarks. A deterministic comparison of 36,000 simulation steps matched the previous model's state and emitted events.
+
 ## Reference
 
 [Space Attack longplay](https://www.youtube.com/watch?v=jYIC8ADIArc), [original Emerson manual](https://amigan.yatho.com/SpaceAttack-Emerson.pdf), and [Arcadia Gaming Guide](https://amigan.yatho.com/agg/). Sprites are drawn in code; no video frames or extracted game assets ship with the game. Desktop keyboard and mouse are required; touch controls are not implemented.

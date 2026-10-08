@@ -21,3 +21,5 @@ Stars have independently randomized positions, brightness, size, and twinkle pha
 Validation: npm test, npm run build, and tests/browser.mjs with local Vite running. Public repository: https://github.com/jushayden/space-attack. No public hosting has been configured.
 
 Difficulty and the current approximate diver angle and random-turn behavior were accepted on 2026-10-08. Sound gain is .075, with a stronger descending critical-fuel alert at 20% and a sound for each actual enemy projectile.
+
+Optimization pass on 2026-10-08 retains 120 Hz simulation and accepted mechanics. Sprite textures are cached with four fractional rounding variants for 2.5px divers; pooled Images preserve layering. HUD writes only changed values (fuel width rounded to 0.1%). Loop sleeps on ready/paused/hidden and wakes on action, Escape, score import, resize, or visibility. Nearest-hit loops preserve tie order and collision priority; temporary per-step arrays are reduced. Model state/events match the previous version across 36,000 deterministic steps.
