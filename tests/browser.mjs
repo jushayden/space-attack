@@ -1,5 +1,7 @@
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+await mkdir('test-results/browser',{recursive:true});
 const browser = await chromium.launch({channel:'msedge',headless:true});
 const context = await browser.newContext({viewport:{width:1280,height:1000}});
 const page = await context.newPage();
@@ -13,7 +15,7 @@ async function centeredPause() {
   const frame = await page.evaluate(() => window.spaceAttackGame.loop.frame);
   await page.waitForTimeout(100);
   assert.equal(await page.evaluate(() => window.spaceAttackGame.loop.frame),frame);
-  await page.screenshot({path:'../../work/paused.png'});
+  await page.screenshot({path:'test-results/browser/paused.png'});
   const title = await page.locator('#title').boundingBox();
   const game = await page.locator('#game').boundingBox();
   assert.ok(Math.abs(title.x + title.width / 2 - game.x - game.width / 2) < 5);
@@ -31,7 +33,7 @@ try {
   await page.goto('http://127.0.0.1:5173');
   await page.waitForSelector('canvas');
   assert.equal(await page.locator('#settings').count(),0);
-  await page.screenshot({path:'../../work/title.png'});
+  await page.screenshot({path:'test-results/browser/title.png'});
   await page.getByRole('button',{name:'START GAME'}).click();
   await page.waitForFunction(() => window.spaceAttack.mode === 'playing');
   assert.equal(await page.evaluate(() => window.spaceAttack.playerActive),false);
@@ -59,7 +61,7 @@ try {
   await page.evaluate(() => {window.spaceAttack.shot = null;});
   await page.locator('canvas').click({position:{x:400,y:450}});
   assert.ok(await page.evaluate(() => window.spaceAttack.shot));
-  await page.screenshot({path:'../../work/gameplay.png'});
+  await page.screenshot({path:'test-results/browser/gameplay.png'});
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await centeredPause();
   await page.keyboard.press('Enter');
@@ -98,7 +100,7 @@ try {
   }
   assert.equal(await page.evaluate(() => window.spaceAttack.mode),'over');
   await page.getByRole('button',{name:'PLAY AGAIN'}).waitFor({state:'visible'});
-  await page.screenshot({path:'../../work/game-over.png'});
+  await page.screenshot({path:'test-results/browser/game-over.png'});
   await page.keyboard.press('Enter');
   assert.equal(await page.evaluate(() => window.spaceAttack.lives),3);
   assert.equal(await page.evaluate(() => window.spaceAttack.score),0);
@@ -110,7 +112,7 @@ try {
   await page.reload(); await page.waitForSelector('canvas');
   assert.equal(await page.evaluate(() => window.spaceAttack.high),60);
   assert.equal(await page.evaluate(() => localStorage.getItem('space-attack.high')),'60');
-  await page.setViewportSize({width:390,height:844}); await page.screenshot({path:'../../work/narrow.png'});
+  await page.setViewportSize({width:390,height:844}); await page.screenshot({path:'test-results/browser/narrow.png'});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
   const blocked = await browser.newContext();
   await blocked.addInitScript(() => {

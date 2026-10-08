@@ -51,7 +51,7 @@ npm test
 npm run build
 ```
 
-With the development server running at port 5173 and Microsoft Edge installed, `node tests/browser.mjs` checks keyboard/mouse input, cancellation, pause, blur, scoring persistence, wave advancement, game over, restart, and narrow layout. It writes screenshots to the workspace's `work` folder. Browser state inspection exists only in development builds.
+With the development server running at port 5173 and Microsoft Edge installed, `node tests/browser.mjs` checks keyboard/mouse input, cancellation, pause, blur, scoring persistence, wave advancement, game over, restart, and narrow layout. It writes screenshots to the ignored `test-results/browser` folder. Browser state inspection exists only in development builds.
 
 GitHub Actions runs the unit tests and production build on pushes and pull requests.
 
