@@ -28,6 +28,8 @@ button:hover { color: #fff; }
 button:focus-visible { outline: 2px solid #e5e94f; outline-offset: 4px; }
 #save-status { margin: 12px 10% 0; color: #afb273; font-size: 10px; text-align: right; }
 #save-status:empty { display: none; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 20px 5% 0; color: #afb273; font-size: 12px; line-height: 1.5; text-align: center; }
+.controls span { white-space: nowrap; }
 @media(max-width:600px) {
   main { padding-top: 16px; }
   .hud { height: 42px; }
