@@ -85,7 +85,7 @@ function diverColor(color: number) {
 class Arcade extends Phaser.Scene {
   accumulator = 0;
   g!: Phaser.GameObjects.Graphics;
-  stars = Array.from({length:90},(_,i) => ({x:(i*137.23)%WIDTH,y:(i*91.7)%HEIGHT,size:i%5===0?2:1}));
+  stars = Array.from({length:90},() => ({x:Math.random()*WIDTH,y:Math.random()*(HEIGHT-220),size:Math.random()<.2?2:1,phase:Math.random()*Math.PI*2,bright:Math.random()<.33}));
   create() {
     this.g = this.add.graphics();
   }
@@ -107,7 +107,7 @@ class Arcade extends Phaser.Scene {
       this.accumulator -= 1/120;
     }
     this.g.clear();
-    this.stars.forEach((s,i) => { this.g.fillStyle(i%3===0?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+i)); this.g.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
+    this.stars.forEach(s => { this.g.fillStyle(s.bright?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+s.phase)); this.g.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
     world.enemies.forEach(e => this.sprite(patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
     if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) {
       this.sprite(player,world.x,PLAYER_Y,0x75d6df);

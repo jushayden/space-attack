@@ -3,6 +3,7 @@ export const HEIGHT = 580;
 export const PLAYER_Y = 529;
 export const PLAYER_SPEED = 360;
 export const SHOT_SPEED = 780;
+export const ENTRY_DELAY = 3;
 export type Mode = 'ready' | 'playing' | 'paused' | 'over';
 export type Enemy = { id: number; x: number; y: number; homeX: number; homeY: number; tier: number; points: number; dive: boolean; vx: number; fireTimer: number; turnTimer: number };
 export type Shot = { x: number; y: number; vx: number };
@@ -73,9 +74,9 @@ export class World {
   }
   damage() {
     if (this.mode !== 'playing' || !this.playerActive) return;
-    this.sparks.push({ x: this.x, y: PLAYER_Y, color: 0x77d9e7, life: 3, kind: 'player' });
+    this.sparks.push({ x: this.x, y: PLAYER_Y, color: 0x77d9e7, life: ENTRY_DELAY, kind: 'player' });
     this.lives--; this.shot = null; this.bullets = []; this.onEvent('damage');
-    this.respawn = 3; this.awaitingEntry = true; this.entryDirection = 0;
+    this.respawn = ENTRY_DELAY; this.awaitingEntry = true; this.entryDirection = 0;
     if (this.lives === 0) { this.mode = 'over'; this.onEvent('over'); }
   }
   step(dt: number, move = 0, firing = false) {
@@ -152,6 +153,7 @@ export class World {
     if (this.mode !== 'playing') return;
     if (!this.enemies.length) {
       this.wave++; this.formation(); this.awaitingEntry = true; this.entryDirection = 0;
+      this.respawn = ENTRY_DELAY;
       this.bullets = []; this.shot = null; this.onEvent('wave'); return;
     }
     if (!this.playerActive) return;

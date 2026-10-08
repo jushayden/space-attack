@@ -12,6 +12,8 @@ Spare ships use the same sprite pattern and proportional screen size as the play
 
 Reference UI: unframed black screen, yellow score digits at the top, green spare ships and red wave number at bottom right. No branding bar, slogans, status strip, or control legend. Pause displays only PAUSED. Sound and score backup controls sit in a collapsed Settings menu. Player silhouette uses the reference's central turret, narrow stem, and flat wide base, with no exhaust effect.
 
-Scoring uses observed row values, with remaining reference uncertainties documented in docs/scoring.md. Do not reproduce repeated post-kill score bursts without new evidence establishing their cause.
+Scoring uses row values confirmed by the original Emerson manual's page 4 table: formation 30/40/50/60 and diving 60/80/100/200. Video anomalies remain documented in docs/scoring.md. Do not reproduce repeated post-kill score bursts without new evidence establishing their cause.
+
+Stars have independently randomized positions, brightness, size, and twinkle phase, and remain below the formation. Wave clear uses the same three-second entry delay as death while displaying the next formation immediately. No life is lost and no death X appears on an ordinary wave clear.
 
 Validation: npm test, npm run build, and tests/browser.mjs with local Vite running. GitHub upload requires the exact destination approval requested by automatic review. No public hosting has been configured.
