@@ -1,0 +1,151 @@
+export const WIDTH = 800;
+export const HEIGHT = 580;
+export const PLAYER_Y = 529;
+export const PLAYER_SPEED = 360;
+export const SHOT_SPEED = 780;
+export type Mode = 'ready' | 'playing' | 'paused' | 'over';
+export type Enemy = { id: number; x: number; y: number; homeX: number; homeY: number; tier: number; points: number; dive: boolean; vx: number; fireTimer: number; turnTimer: number };
+export type Shot = { x: number; y: number; vx: number };
+export type Spark = { x: number; y: number; color: number; life: number; kind: 'enemy' | 'player' };
+export const COLORS = [0xf04b49, 0x63e16c, 0xebdf58];
+export function direction(keys: Set<string>) {
+  return Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft'));
+}
+export function difficulty(wave: number) {
+  const progression = Math.max(0, wave - 1);
+  const level = Math.min(15, progression);
+  return { bulletSpeed: 190 + 510 * progression / (progression + 30), fireDelay: Math.max(.3, 1.25 - level * .075), diveDelay: Math.max(.7, 2.7 - level * .15), diveSpeed: 115 + level * 9 };
+}
+export function diveFireDelay(y: number, wave: number) {
+  const descent = Math.max(0, Math.min(1, y / PLAYER_Y));
+  return Math.max(.16, difficulty(wave).fireDelay * (1.15 - .85 * descent));
+}
+export class World {
+  mode: Mode = 'ready';
+  score = 0;
+  high = 0;
+  wave = 1;
+  lives = 3;
+  x = WIDTH / 2;
+  shot: Shot | null = null;
+  bullets: Shot[] = [];
+  enemies: Enemy[] = [];
+  sparks: Spark[] = [];
+  age = 0;
+  waveWait = 0;
+  respawn = 0;
+  diveTimer = 2.4;
+  onEvent: (event: string) => void = () => {};
+  constructor(public random = Math.random) { this.formation(); }
+  start() {
+    this.score = 0; this.wave = 1; this.lives = 3; this.x = WIDTH / 2;
+    this.shot = null; this.bullets = []; this.sparks = []; this.age = 0;
+    this.waveWait = 0; this.respawn = 0; this.mode = 'playing'; this.formation();
+    this.onEvent('start');
+  }
+  formation() {
+    this.enemies = [];
+    [2, 5, 7, 9, 9, 9].forEach((count, row) => {
+      for (let column = 0; column < count; column++) {
+        const x = WIDTH / 2 + (row === 0 ? (column * 2 - 1) : column - (count - 1) / 2) * 38;
+        const y = 48 + row * 27;
+        this.enemies.push({ id: this.enemies.length, x, y, homeX: x, homeY: y, tier: row === 0 ? 2 : row === 2 ? 1 : 0, points: row === 0 ? 60 : row === 1 ? 50 : row === 2 ? 40 : 30, dive: false, vx: 0, fireTimer: 0, turnTimer: 0 });
+      }
+    });
+    this.diveTimer = 2.4;
+  }
+  pause() { if (this.mode === 'playing') this.mode = 'paused'; }
+  resume() { if (this.mode === 'paused') this.mode = 'playing'; }
+  fire() {
+    if (this.mode !== 'playing' || this.shot || this.respawn > 0 || this.waveWait > 0) return;
+    this.shot = { x: this.x, y: PLAYER_Y - 19, vx: 0 }; this.onEvent('shoot');
+  }
+  kill(enemy: Enemy) {
+    this.enemies = this.enemies.filter(e => e !== enemy);
+    this.score += enemy.dive ? (enemy.tier === 2 ? 200 : enemy.points * 2) : enemy.points;
+    this.high = Math.max(this.high, this.score);
+    this.sparks.push({ x: enemy.x, y: enemy.y, color: 0xebdf58, life: .5, kind: 'enemy' });
+    this.onEvent('hit');
+  }
+  damage() {
+    if (this.mode !== 'playing' || this.respawn > 0) return;
+    this.sparks.push({ x: this.x, y: PLAYER_Y, color: 0x77d9e7, life: 1.1, kind: 'player' });
+    this.lives--; this.shot = null; this.bullets = []; this.onEvent('damage');
+    if (this.lives === 0) { this.mode = 'over'; this.onEvent('over'); }
+    else { this.respawn = 1.1; this.x = WIDTH / 2; }
+  }
+  step(dt: number, move = 0, firing = false) {
+    if (this.mode === 'over') {
+      this.sparks.forEach(s => s.life -= Math.min(dt, 1 / 30));
+      this.sparks = this.sparks.filter(s => s.life > 0);
+      return;
+    }
+    if (this.mode !== 'playing') return;
+    dt = Math.min(dt, 1 / 30);
+    this.age += dt;
+    this.sparks.forEach(s => s.life -= dt);
+    this.sparks = this.sparks.filter(s => s.life > 0);
+    if (this.respawn > 0) this.respawn = Math.max(0, this.respawn - dt);
+    if (this.waveWait > 0) {
+      this.waveWait -= dt;
+      if (this.waveWait <= 0) { this.wave++; this.formation(); this.onEvent('wave'); }
+      return;
+    }
+    if (this.respawn <= 0) this.x = Math.max(24, Math.min(WIDTH - 24, this.x + move * PLAYER_SPEED * dt));
+    if (firing) this.fire();
+    const settings = difficulty(this.wave);
+    for (const enemy of this.enemies) {
+      if (enemy.dive) {
+        enemy.turnTimer -= dt;
+        if (enemy.turnTimer <= 0) {
+          if (this.random() < .28) enemy.vx *= -1;
+          enemy.turnTimer = .65 + this.random() * .85;
+        }
+        enemy.x += enemy.vx * dt; enemy.y += settings.diveSpeed * dt;
+        if (enemy.x < 23 || enemy.x > WIDTH - 23) { enemy.vx *= -1; enemy.x = Math.max(23, Math.min(WIDTH - 23, enemy.x)); }
+        enemy.fireTimer -= dt;
+        if (enemy.fireTimer <= 0) {
+          if (enemy.y < PLAYER_Y - 24) this.bullets.push({ x: enemy.x, y: enemy.y + 15, vx: 0 });
+          enemy.fireTimer = diveFireDelay(enemy.y, this.wave);
+        }
+        if (enemy.y > HEIGHT + 20) { enemy.dive = false; enemy.vx = 0; enemy.x = enemy.homeX + Math.sin(this.age * .8) * 22; enemy.y = enemy.homeY; }
+      } else { enemy.x = enemy.homeX + Math.sin(this.age * .8) * 22; enemy.y = enemy.homeY; }
+    }
+    if (this.shot) {
+      const shot = this.shot;
+      const oldY = shot.y;
+      shot.y -= SHOT_SPEED * dt;
+      const hit = this.enemies.filter(e => Math.abs(e.x - shot.x) < 17 && e.y + 13 >= shot.y && e.y - 13 <= oldY).sort((a,b) => b.y - a.y)[0];
+      if (hit) {
+        this.shot = null; this.kill(hit);
+      } else if (shot.y < -15) this.shot = null;
+    }
+    for (const bullet of [...this.bullets]) {
+      const oldY = bullet.y;
+      bullet.y += settings.bulletSpeed * dt; bullet.x += bullet.vx * dt;
+      if (this.respawn <= 0 && Math.abs(bullet.x - this.x) < 17 && bullet.y + 5 >= PLAYER_Y - 13 && oldY - 5 <= PLAYER_Y + 13) {
+        this.damage(); break;
+      }
+    }
+    this.bullets = this.bullets.filter(b => b.y < HEIGHT + 10 && b.x > -10 && b.x < WIDTH + 10);
+    for (const enemy of this.enemies) {
+      if (this.mode === 'playing' && this.respawn <= 0 && Math.abs(enemy.x - this.x) < 27 && Math.abs(enemy.y - PLAYER_Y) < 23) {
+        this.kill(enemy); this.damage(); break;
+      }
+    }
+    if (this.mode !== 'playing') return;
+    if (!this.enemies.length) { this.waveWait = 1.7; this.bullets = []; this.shot = null; this.onEvent('clear'); return; }
+    this.diveTimer -= dt;
+    if (this.diveTimer <= 0) {
+      const available = this.enemies.filter(e => !e.dive);
+      const slots = 2 - this.enemies.filter(e => e.dive).length;
+      for (let slot = 0; slot < slots && available.length; slot++) {
+        const [enemy] = available.splice(Math.floor(this.random() * available.length), 1);
+        enemy.dive = true; enemy.vx = (this.random() < .5 ? -1 : 1) * (95 + this.random() * 65);
+        enemy.fireTimer = diveFireDelay(enemy.y, this.wave) * (.6 + this.random() * .4);
+        enemy.turnTimer = .65 + this.random() * .85;
+      }
+      this.diveTimer = settings.diveDelay;
+    }
+  }
+}
