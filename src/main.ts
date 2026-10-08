@@ -12,24 +12,25 @@ let mouse = false;
 let audio: AudioContext | undefined;
 let previousMode = '';
 let savedHigh = world.high;
-function tone(frequency: number, duration: number, end: number) {
+function tone(frequency: number, duration: number, end: number, volume = .075) {
   audio ??= new AudioContext();
   void audio.resume();
   const oscillator = audio.createOscillator();
   const gain = audio.createGain();
   oscillator.type = 'square'; oscillator.frequency.setValueAtTime(frequency, audio.currentTime);
   oscillator.frequency.exponentialRampToValueAtTime(end, audio.currentTime + duration);
-  gain.gain.setValueAtTime(.025, audio.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
+  gain.gain.setValueAtTime(volume, audio.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
   oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + duration);
 }
 world.onEvent = event => {
+  if (event === 'enemy-shoot') tone(320, .1, 130);
   if (event === 'shoot') tone(740, .08, 220);
   if (event === 'hit') tone(180, .11, 55);
   if (event === 'damage') tone(110, .35, 22);
   if (event === 'wave') tone(300, .3, 900);
   if (event === 'bonus') tone(500, .4, 1100);
   if (event === 'cancel') tone(260, .045, 110);
-  if (event === 'fuel-warning') tone(180, .12, 180);
+  if (event === 'fuel-warning') tone(880, .24, 440, .12);
   if (world.high !== savedHigh) { savedHigh = world.high; scores.save(savedHigh); }
 };
 function action() {

@@ -94,8 +94,8 @@ test('clearing a wave immediately replaces the formation and waits for direction
   assert.equal(w.playerActive, false);
   const timer = w.diveTimer;
   const lives = w.lives;
-  frames(w, 179, 1, true);
-  assert.ok(w.respawn > 0);
+  assert.equal(w.respawn, 0);
+  frames(w, 179, 0, true);
   assert.equal(w.entryDirection, 0);
   assert.equal(w.awaitingEntry, true);
   assert.equal(w.lives, lives);

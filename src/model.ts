@@ -110,7 +110,10 @@ export class World {
         if (canFire) {
           enemy.fireTimer -= dt;
           if (enemy.fireTimer <= 0) {
-            if (enemy.y < PLAYER_Y - 24) this.bullets.push({ x: enemy.x, y: enemy.y + 15, vx: 0 });
+            if (enemy.y < PLAYER_Y - 24) {
+              this.bullets.push({ x: enemy.x, y: enemy.y + 15, vx: 0 });
+              this.onEvent('enemy-shoot');
+            }
             enemy.fireTimer = diveFireDelay(enemy.y, this.wave);
           }
         }
@@ -198,7 +201,6 @@ export class World {
     if (this.mode !== 'playing') return;
     if (!this.enemies.length) {
       this.wave++; this.formation(); this.awaitingEntry = true; this.entryDirection = 0;
-      this.respawn = ENTRY_DELAY;
       this.fuel = FUEL_DURATION; this.fuelEmptyTimer = FUEL_EMPTY_GRACE; this.fuelWarningTimer = 0;
       this.bullets = []; this.shot = null; this.onEvent('wave'); return;
     }

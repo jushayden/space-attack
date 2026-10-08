@@ -69,14 +69,9 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem('space-attack.high')),'60');
   assert.equal(await page.evaluate(() => window.spaceAttack.wave),2);
   assert.equal(await page.evaluate(() => window.spaceAttack.enemies.length),41);
-  assert.ok(await page.evaluate(() => window.spaceAttack.respawn > 2.5));
-  await page.keyboard.down('ArrowRight');
-  await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(() => window.spaceAttack.respawn),0);
   assert.equal(await page.evaluate(() => window.spaceAttack.playerActive),false);
-  assert.equal(await page.evaluate(() => window.spaceAttack.entryDirection),0);
   assert.equal(await page.evaluate(() => window.spaceAttack.enemies.some(enemy => enemy.dive)),false);
-  await page.keyboard.up('ArrowRight');
-  await page.waitForFunction(() => window.spaceAttack.respawn <= 0);
   await enterSector('ArrowRight','left');
   for (let lives = 2; lives >= 0; lives--) {
     await page.evaluate(() => {

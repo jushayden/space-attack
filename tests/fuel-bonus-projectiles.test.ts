@@ -88,7 +88,7 @@ test('empty fuel warns, grants two active seconds, then costs one ship and refil
   assert.equal(w.playerActive, true);
 });
 
-test('wave completion refills fuel and holds it throughout the entry delay', () => {
+test('wave completion refills fuel and holds it while awaiting input', () => {
   const w = world();
   w.fuel = 0;
   w.fuelEmptyTimer = .5;
@@ -97,8 +97,8 @@ test('wave completion refills fuel and holds it throughout the entry delay', () 
   assert.equal(w.wave, 2);
   assert.equal(w.fuel, 40);
   assert.equal(w.fuelEmptyTimer, 2);
-  assert.equal(w.respawn, 3);
-  frames(w, 179, 1);
+  assert.equal(w.respawn, 0);
+  frames(w, 179);
   assert.equal(w.fuel, 40);
   assert.equal(w.playerActive, false);
 });

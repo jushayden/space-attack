@@ -32,7 +32,7 @@ Each run starts with three ships, with the first waiting offscreen for direction
 
 A destroyed player leaves an X and debris on screen for three seconds. After that, hold D or Right Arrow to slide in from the left, or A or Left Arrow to appear fully at the right edge, matching the entry asymmetry documented in the Arcadia guide. Opposing inputs cancel and keep the ship waiting. On the last life, the same three-second death display precedes Game Over; Enter starts a fresh run.
 
-Clearing a wave displays the next formation immediately and removes the active ship for three seconds, matching the death delay. After that delay, directional input brings the ship back in from the corresponding edge. Enemies do not begin diving until the ship has entered the playfield.
+Clearing a wave displays the next formation immediately and resets the player for directional entry without a timed delay. Directional input brings the ship back in from the corresponding edge. Enemies do not begin diving until the ship has entered the playfield.
 
 ## Enemy rules
 
