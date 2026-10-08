@@ -6,7 +6,9 @@ Fresh project created 2026-10-08. Phaser 3, TypeScript 5, Vite 7. Exact versions
 
 Current requirements: exactly one player shot; A/D and arrows cancel across bindings; one active ship plus two spares; compact 41-unit formation; three colors with two red/green sprite variants; two random divers; reflections and random turns; downward firing accelerates with descent; enemy shot speed increases per wave but stays below the player's; contact kills both ships; stars begin below the formation; smaller darker divers; yellow enemy pulses and cyan X/debris on player death.
 
-Spare ships use the same sprite pattern and proportional screen size as the player. Respawning briefly removes the active ship rather than displaying an invulnerable ship. Losing focus pauses the simulation and clears input.
+Spare ships use the same sprite pattern and proportional screen size as the player. Death leaves an X for three seconds, then awaits directional entry. Right input enters from the left; left input enters from the right. Waves reset immediately and await the same input-directed entry. Divers and combat wait while the player is absent. Losing focus pauses the simulation and clears input. Enter restarts after the final three-second death display.
+
+`src/scores.ts` validates scores, merges the highest local/cookie/session copy, writes redundant backups, and falls back to memory. Export/import JSON preserves the score when browser persistence is blocked. Storage state is visible in the page's score backup controls.
 
 Scoring uses observed row values, with remaining reference uncertainties documented in docs/scoring.md. Do not reproduce repeated post-kill score bursts without new evidence establishing their cause.
 

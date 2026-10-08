@@ -77,3 +77,22 @@ test('final-life ram removes both ships and ends the run once', () => {
   w.step(1 / 60);
   assert.equal(w.lives, 0);
 });
+
+test('ramming the final enemy replaces the wave while preserving the death delay', () => {
+  const w = world();
+  const enemy = w.enemies[0];
+  Object.assign(enemy, { dive: true, x: w.x, y: PLAYER_Y, vx: 0 });
+  w.enemies = [enemy];
+  w.step(1 / 60);
+  assert.equal(w.enemies.includes(enemy), false);
+  assert.equal(w.enemies.length, 41);
+  assert.equal(w.wave, 2);
+  assert.equal(w.lives, 2);
+  assert.equal(w.respawn, 3);
+  assert.equal(w.awaitingEntry, true);
+  assert.equal(w.playerActive, false);
+  w.step(1 / 60, 1, true);
+  assert.equal(w.entryDirection, 0);
+  assert.equal(w.shot, null);
+  assert.equal(w.enemies.filter(e => e.dive).length, 0);
+});

@@ -1,6 +1,6 @@
 # Space Attack
 
-A desktop browser arcade shooter built with Phaser, TypeScript, and Vite. Start a run, clear enemy formations, and survive increasingly fast enemy fire. The high score stays in the current browser's local storage.
+A desktop browser arcade shooter built with Phaser, TypeScript, and Vite. Start a run, clear enemy formations, and survive increasingly fast enemy fire. High scores are saved to local storage and a backup cookie, with session storage and an in-memory copy as fallbacks. Export Score downloads a backup that Import Score can restore, including when browser storage is blocked. If all persistent storage is unavailable, exporting the file is required to keep the score after closing the browser.
 
 ## Run
 
@@ -25,6 +25,10 @@ Open the URL printed by Vite. For a production build, run `npm run build`, then 
 Opposite directions cancel, including mixed keyboard bindings. Movement has constant speed and stops on release. Space and mouse share one projectile slot. A new shot becomes available after the previous shot hits or exits the screen.
 
 Each run starts with one active ship and two spares. Both ships die on player/enemy contact. Switching tabs or losing window focus pauses the game; return and resume explicitly.
+
+A destroyed player leaves an X and debris on screen for three seconds. After that, hold D or Right Arrow to enter from the left, or A or Left Arrow to enter from the right. Opposing inputs cancel and keep the ship waiting. On the last life, the same three-second death display precedes Game Over; Enter starts a fresh run.
+
+Clearing a wave displays the next formation immediately and removes the active ship. Directional input brings the ship back in from the corresponding edge. Enemies do not begin diving until the ship has entered the playfield.
 
 ## Enemy rules
 

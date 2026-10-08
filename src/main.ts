@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import './style.css';
 import { World, WIDTH, HEIGHT, PLAYER_Y, direction, COLORS } from './model';
+import { browserScores } from './scores';
 
 const $ = (id: string) => document.getElementById(id)!;
 const world = new World();
-try { const n = Number(localStorage.getItem('space-attack.high')); world.high = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; } catch {}
+const scores = browserScores();
+world.high = scores.value;
 const keys = new Set<string>();
 let mouse = false;
 let sound = false;
@@ -27,18 +29,39 @@ world.onEvent = event => {
   if (event === 'hit') tone(180, .11, 55);
   if (event === 'damage') tone(110, .35, 22);
   if (event === 'wave') tone(300, .3, 900);
-  if (world.high !== savedHigh) { savedHigh = world.high; try { localStorage.setItem('space-attack.high', String(savedHigh)); } catch {} }
+  if (world.high !== savedHigh) { savedHigh = world.high; scores.save(savedHigh); }
 };
 function action() {
   keys.clear(); mouse = false;
-  if (world.mode === 'paused') world.resume(); else if (world.mode !== 'playing') world.start();
+  if (world.mode === 'paused') world.resume(); else if (world.mode === 'ready' || (world.mode === 'over' && world.respawn <= 0)) world.start();
   ($('start') as HTMLButtonElement).blur();
 }
 $('start').addEventListener('click', action);
-$('sound').addEventListener('click', () => { sound = !sound; $('sound').textContent = sound ? 'SOUND ON' : 'SOUND OFF'; $('sound').setAttribute('aria-pressed', String(sound)); if (sound) tone(440,.08,660); });
+const backup = document.createElement('div');
+backup.className = 'score-backup';
+backup.innerHTML = '<span id="save-status"></span><button id="export-score">EXPORT SCORE</button><button id="import-score">IMPORT SCORE</button><input id="score-file" type="file" accept="application/json,.json" hidden>';
+document.querySelector('main')!.append(backup);
+$('export-score').addEventListener('click', () => {
+  const url = URL.createObjectURL(new Blob([scores.export()], {type:'application/json'}));
+  const link = document.createElement('a'); link.href = url; link.download = 'space-attack-score.json'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+});
+$('import-score').addEventListener('click', () => ($('score-file') as HTMLInputElement).click());
+$('score-file').addEventListener('change', async () => {
+  const input = $('score-file') as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    if (file.size > 4096) throw new Error('Invalid backup');
+    world.high = scores.import(await file.text()); savedHigh = world.high;
+    $('save-status').textContent = 'SCORE RESTORED';
+  } catch { $('save-status').textContent = 'INVALID SCORE BACKUP'; }
+  input.value = '';
+});
+$('sound').addEventListener('click', () => { sound = !sound; $('sound').textContent = sound ? 'SOUND ON' : 'SOUND OFF'; $('sound').setAttribute('aria-pressed', String(sound)); if (sound) tone(440,.08,660); ($('sound') as HTMLButtonElement).blur(); });
 window.addEventListener('keydown', event => {
   if (['Space','ArrowLeft','ArrowRight','Escape','Enter','KeyA','KeyD'].includes(event.code) && !(event.target instanceof HTMLButtonElement)) event.preventDefault();
-  if (event.code === 'Enter' && !event.repeat && !(event.target instanceof HTMLButtonElement)) action();
+  if (event.code === 'Enter' && !event.repeat && (!(event.target instanceof HTMLButtonElement) || world.mode === 'over')) { event.preventDefault(); action(); }
   if (event.code === 'Escape' && !event.repeat) { if (world.mode === 'paused') world.resume(); else world.pause(); keys.clear(); mouse = false; }
   if (!(event.target instanceof HTMLButtonElement)) keys.add(event.code);
 });
@@ -88,7 +111,7 @@ class Arcade extends Phaser.Scene {
     this.g.clear();
     this.stars.forEach((s,i) => { this.g.fillStyle(i%3===0?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+i)); this.g.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
     world.enemies.forEach(e => this.sprite(patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
-    if (world.lives > 0 && world.respawn <= 0) {
+    if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) {
       this.sprite(player,world.x,PLAYER_Y,0x75d6df);
       this.g.fillStyle(0xe3e29a); this.g.fillRect(world.x-3,PLAYER_Y+12,6,4+Math.sin(world.age*40)*2);
     }
@@ -103,8 +126,8 @@ class Arcade extends Phaser.Scene {
         this.g.lineStyle(2, 0x9a872b, (1-progress)*.75);
         this.g.strokeCircle(s.x,s.y,radius*.65);
       } else {
-        const progress = 1 - s.life / 1.1;
-        this.g.fillStyle(s.color, Math.min(1,s.life*3));
+        const progress = Math.min(1,(3 - s.life) / .6);
+        this.g.fillStyle(s.color, 1);
         for(let i=-3;i<=3;i++) {
           this.g.fillRect(s.x+i*3-1.5,s.y+i*3-1.5,3,3);
           this.g.fillRect(s.x+i*3-1.5,s.y-i*3-1.5,3,3);
@@ -117,13 +140,14 @@ class Arcade extends Phaser.Scene {
         }
       }
     });
-    this.banner.setText(world.waveWait>0?'WAVE CLEARED':world.respawn>0?'SHIP LOST':'');
+    this.banner.setText(world.respawn>0?'SHIP LOST':world.awaitingEntry?'← / A   ENTER SECTOR   D / →':'');
     $('score').textContent=String(world.score).padStart(6,'0'); $('best').textContent=String(world.high).padStart(6,'0'); $('wave').textContent=String(world.wave).padStart(2,'0');
     const spare = Math.max(0,world.lives-1);
     if ($('lives').childElementCount!==spare) $('lives').innerHTML=spareSprite.repeat(spare);
     $('lives').setAttribute('aria-label', `${spare} spare ships`);
-    $('status').textContent=world.mode==='playing'?(world.waveWait>0?'NEXT WAVE INCOMING':world.respawn>0?'DEPLOYING SPARE SHIP':'DEFEND THE SECTOR'):world.mode==='paused'?'FLIGHT PAUSED':world.mode==='over'?'SIGNAL LOST':'READY TO LAUNCH';
-    const displayMode = world.mode === 'over' && world.sparks.some(s => s.kind === 'player' && s.life > .3) ? 'dying' : world.mode;
+    $('status').textContent=world.mode==='playing'?(world.respawn>0?'SHIP LOST':world.awaitingEntry?'MOVE TO ENTER SECTOR':world.entryDirection?'ENTERING SECTOR':'DEFEND THE SECTOR'):world.mode==='paused'?'FLIGHT PAUSED':world.mode==='over'?'SIGNAL LOST':'READY TO LAUNCH';
+    if (scores.status !== 'persistent') $('save-status').textContent = scores.status === 'session' ? 'TEMPORARY SAVE · EXPORT TO KEEP' : 'STORAGE UNAVAILABLE · EXPORT TO KEEP';
+    const displayMode = world.mode === 'over' && world.respawn > 0 ? 'dying' : world.mode;
     if(previousMode !== displayMode){
       previousMode=displayMode;
       $('overlay').classList.toggle('hidden',displayMode==='playing' || displayMode==='dying');

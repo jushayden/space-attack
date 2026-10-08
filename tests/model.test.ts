@@ -25,13 +25,13 @@ test('swept shots hit one enemy and award points once', () => {
   const w = new World(); w.start();
   const enemy=w.enemies[0]; enemy.homeX=400; enemy.homeY=300;
   w.enemies=[enemy]; w.shot={x:400,y:315,vx:0}; w.step(1/30);
-  assert.equal(w.enemies.length,0); assert.equal(w.score,60); assert.equal(w.shot,null);
+  assert.equal(w.enemies.includes(enemy),false); assert.equal(w.enemies.length,41); assert.equal(w.wave,2); assert.equal(w.score,60); assert.equal(w.shot,null);
   w.step(1/30); assert.equal(w.score,60); assert.equal(w.high,60);
 });
 test('enemy shots consume two spares then end the run and restart resets all state', () => {
   const w = new World(); w.start();
   for(let life=2;life>=0;life--){
-    w.respawn=0; w.bullets=[{x:w.x,y:PLAYER_Y-12,vx:0},{x:w.x,y:PLAYER_Y-12,vx:0}]; w.step(1/30);
+    w.respawn=0; w.awaitingEntry=false; w.bullets=[{x:w.x,y:PLAYER_Y-12,vx:0},{x:w.x,y:PLAYER_Y-12,vx:0}]; w.step(1/30);
     assert.equal(w.lives,life); assert.equal(w.mode,life?'playing':'over');
   }
   w.high=300; w.score=120; w.wave=4; w.start();
@@ -42,7 +42,7 @@ test('enemy contact destroys both ships and awards a kill', () => {
   w.step(1/60);assert.equal(w.lives,2);assert.ok(w.score>0);assert.equal(w.enemies.includes(e),false);
 });
 test('clearing formation advances waves and increases bounded difficulty', () => {
-  const w=new World(); w.start(); w.enemies=[];w.step(1/60);assert.ok(w.waveWait>0);
+  const w=new World(); w.start(); w.enemies=[];w.step(1/60);assert.equal(w.awaitingEntry,true);
   for(let i=0;i<110;i++)w.step(1/60);
   assert.equal(w.wave,2);assert.equal(w.enemies.length,41);
   assert.ok(difficulty(2).bulletSpeed>difficulty(1).bulletSpeed);

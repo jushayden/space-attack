@@ -8,7 +8,7 @@ test('formation rewards distinguish lower red, green, upper red, and yellow rows
     const target = world.enemies.find(enemy => enemy.homeY === 48 + row * 27)!;
     world.enemies = [target]; world.shot = {x:target.x,y:target.y+17,vx:0};
     world.step(1/60);
-    assert.equal(world.enemies.length,0); assert.equal(world.score,points);
+    assert.equal(world.enemies.includes(target),false); assert.equal(world.enemies.length,41); assert.equal(world.wave,2); assert.equal(world.score,points);
     world.step(1/60); assert.equal(world.score,points);
   }
 });
@@ -20,7 +20,7 @@ test('diving rewards use the observed tier values once per kill', () => {
     Object.assign(target,{dive:true,x:400,y:350,vx:0,fireTimer:10,turnTimer:10});
     world.enemies = [target]; world.shot = {x:400,y:370,vx:0};
     world.step(1/60);
-    assert.equal(world.enemies.length,0); assert.equal(world.score,points);
+    assert.equal(world.enemies.includes(target),false); assert.equal(world.enemies.length,41); assert.equal(world.wave,2); assert.equal(world.score,points);
     world.step(1/60); assert.equal(world.score,points);
   }
 });
