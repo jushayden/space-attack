@@ -26,6 +26,7 @@ async function enterSector(key, side) {
 try {
   await page.goto('http://127.0.0.1:5173');
   await page.waitForSelector('canvas');
+  assert.equal(await page.locator('#settings').count(),0);
   await page.screenshot({path:'../../work/title.png'});
   await page.getByRole('button',{name:'START GAME'}).click();
   await page.waitForFunction(() => window.spaceAttack.mode === 'playing');
@@ -121,13 +122,12 @@ try {
   const fallback = await blocked.newPage();
   fallback.on('pageerror',error => errors.push(error.message));
   await fallback.goto('http://127.0.0.1:5173'); await fallback.waitForSelector('canvas');
-  await fallback.getByText('STORAGE UNAVAILABLE · EXPORT TO KEEP').waitFor();
+  await fallback.getByText('STORAGE UNAVAILABLE · ALT+SHIFT+E TO EXPORT').waitFor();
   await fallback.getByRole('button',{name:'START GAME'}).click();
   await fallback.evaluate(() => {const w = window.spaceAttack; w.kill(w.enemies[0]);});
   assert.equal(await fallback.evaluate(() => window.spaceAttack.high),60);
   const downloadPromise = fallback.waitForEvent('download');
-  await fallback.locator('#settings summary').click();
-  await fallback.getByRole('button',{name:'EXPORT SCORE'}).click();
+  await fallback.keyboard.press('Alt+Shift+KeyE');
   const download = await downloadPromise;
   assert.equal(download.suggestedFilename(),'space-attack-score.json');
   await fallback.locator('#score-file').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({game:'space-attack',version:1,highScore:500}))});

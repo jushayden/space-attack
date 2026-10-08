@@ -1,6 +1,6 @@
 # Space Attack
 
-A desktop browser arcade shooter built with Phaser, TypeScript, and Vite. Start a run, clear enemy formations, and survive increasingly fast enemy fire. High scores are saved to local storage and a backup cookie, with session storage and an in-memory copy as fallbacks. Export Score downloads a backup that Import Score can restore, including when browser storage is blocked. If all persistent storage is unavailable, exporting the file is required to keep the score after closing the browser.
+A desktop browser arcade shooter built with Phaser, TypeScript, and Vite. Start a run, clear enemy formations, and survive increasingly fast enemy fire. High scores are saved to local storage and a backup cookie, with session storage and an in-memory copy as fallbacks. Alt+Shift+E downloads a score backup that Alt+Shift+I can restore, including when browser storage is blocked. If all persistent storage is unavailable, exporting the file is required to keep the score after closing the browser.
 
 ## Run
 
@@ -22,6 +22,9 @@ Open the URL printed by Vite. For a production build, run `npm run build`, then 
 | Start, restart | Enter or the screen button |
 | Resume | Enter or Escape |
 | Pause, resume | Escape |
+| Export / import score backup | Alt+Shift+E / Alt+Shift+I |
+
+Sound is always enabled and unlocks when you start the game.
 
 Opposite directions cancel, including mixed keyboard bindings. Movement has constant speed and stops on release. Space and mouse share one projectile slot. A new shot becomes available after the previous shot hits or exits the screen.
 
@@ -35,7 +38,7 @@ Clearing a wave displays the next formation immediately and removes the active s
 
 The 41 enemies occupy six rows: 2 yellow, 5 red, 7 green, and three rows of 9 red. The formation moves slowly from side to side. Up to two randomly selected enemies dive diagonally, bounce off the sides, and sometimes reverse direction in midair. Divers fire downward more often as they descend. Survivors return to their original formation slots without awarding points. While the player is absent, existing divers keep moving without firing, and new dives wait for the player's return.
 
-The fuel meter drains during active play and refills for each replacement ship and new wave. A tank lasts approximately 40 seconds, followed by a two-second empty warning before the ship is lost. Low fuel changes the meter to red and sounds a warning when sound is enabled. Pausing or waiting offscreen does not consume fuel. See [fuel measurements and timing assumptions](docs/fuel.md).
+The fuel meter drains during active play and refills for each replacement ship and new wave. A tank lasts approximately 40 seconds, followed by a two-second empty warning before the ship is lost. Low fuel changes the meter to red and sounds a warning. Pausing or waiting offscreen does not consume fuel. See [fuel measurements and timing assumptions](docs/fuel.md).
 
 Enemy projectile speed increases each wave and stays below player projectile speed. Firing pressure and dive frequency also increase, with limits that preserve playability. Divers retain the video's measured screen-space slope of approximately 28.8 degrees below horizontal across waves. Their positions advance in 30 Hz steps to recreate the guide's described jerkiness; the exact original update frequency is not documented.
 

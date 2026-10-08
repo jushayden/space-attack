@@ -9,12 +9,10 @@ const scores = browserScores();
 world.high = scores.value;
 const keys = new Set<string>();
 let mouse = false;
-let sound = false;
 let audio: AudioContext | undefined;
 let previousMode = '';
 let savedHigh = world.high;
 function tone(frequency: number, duration: number, end: number) {
-  if (!sound) return;
   audio ??= new AudioContext();
   void audio.resume();
   const oscillator = audio.createOscillator();
@@ -35,21 +33,18 @@ world.onEvent = event => {
   if (world.high !== savedHigh) { savedHigh = world.high; scores.save(savedHigh); }
 };
 function action() {
+  audio ??= new AudioContext();
+  void audio.resume();
   keys.clear(); mouse = false;
   if (world.mode === 'paused') world.resume(); else if (world.mode === 'ready' || (world.mode === 'over' && world.respawn <= 0)) world.start();
   ($('start') as HTMLButtonElement).blur();
 }
 $('start').addEventListener('click', action);
-const backup = document.createElement('div');
-backup.className = 'score-backup';
-backup.innerHTML = '<button id="export-score">EXPORT SCORE</button><button id="import-score">IMPORT SCORE</button><input id="score-file" type="file" accept="application/json,.json" hidden>';
-$('settings-body').append(backup);
-$('export-score').addEventListener('click', () => {
+function exportScore() {
   const url = URL.createObjectURL(new Blob([scores.export()], {type:'application/json'}));
   const link = document.createElement('a'); link.href = url; link.download = 'space-attack-score.json'; link.click();
   setTimeout(() => URL.revokeObjectURL(url),1000);
-});
-$('import-score').addEventListener('click', () => ($('score-file') as HTMLInputElement).click());
+}
 $('score-file').addEventListener('change', async () => {
   const input = $('score-file') as HTMLInputElement;
   const file = input.files?.[0];
@@ -61,8 +56,12 @@ $('score-file').addEventListener('change', async () => {
   } catch { $('save-status').textContent = 'INVALID SCORE BACKUP'; }
   input.value = '';
 });
-$('sound').addEventListener('click', () => { sound = !sound; $('sound').textContent = sound ? 'SOUND ON' : 'SOUND OFF'; $('sound').setAttribute('aria-pressed', String(sound)); if (sound) tone(440,.08,660); ($('sound') as HTMLButtonElement).blur(); });
 window.addEventListener('keydown', event => {
+  if (event.altKey && event.shiftKey && ['KeyE','KeyI'].includes(event.code)) {
+    event.preventDefault();
+    if (!event.repeat) { if (event.code === 'KeyE') exportScore(); else ($('score-file') as HTMLInputElement).click(); }
+    return;
+  }
   if (['Space','ArrowLeft','ArrowRight','Escape','Enter','KeyA','KeyD'].includes(event.code) && !(event.target instanceof HTMLButtonElement)) event.preventDefault();
   if (event.code === 'Enter' && !event.repeat && (!(event.target instanceof HTMLButtonElement) || world.mode === 'over')) { event.preventDefault(); action(); }
   if (event.code === 'Escape' && !event.repeat) { if (world.mode === 'paused') world.resume(); else world.pause(); keys.clear(); mouse = false; }
@@ -80,6 +79,7 @@ const patterns = [
   ['00100000100','01111111110','01111111110','01101110110','01111111110','00111111100','01100100110','11000000011'],
   ['10000000001','11000100011','01111111110','01101110110','00111111100','00011111000','00001110000','00000100000'],
 ];
+const yellowDiver = ['00000000000','00000100000','11111111111','10101110101','10111111101','00011111000','00001110000','00000100000'];
 const player = ['00000100000','00001110000','00111111100','00000100000','10000100001','11111111111','11000000011'];
 const spareSprite = `<svg class="ship" viewBox="0 0 11 7" aria-hidden="true">${player.flatMap((row,y) => [...row].flatMap((pixel,x) => pixel === '1' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : [])).join('')}</svg>`;
 function diverColor(color: number) {
@@ -111,7 +111,7 @@ class Arcade extends Phaser.Scene {
     }
     this.g.clear();
     this.stars.forEach(s => { this.g.fillStyle(s.bright?0xbbae43:0x7d7429,.6+.2*Math.sin(world.age+s.phase)); this.g.fillRect(s.x,220+(s.y+world.age*5)%(HEIGHT-220),s.size,s.size); });
-    world.enemies.forEach(e => this.sprite(patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
+    world.enemies.forEach(e => this.sprite(e.tier === 2 && e.dive ? yellowDiver : patterns[e.tier === 2 ? 2 : (e.id + Math.floor(world.age * 2)) % 2],e.x,e.y,e.dive ? diverColor(COLORS[e.tier]) : COLORS[e.tier],e.dive ? 2.5 : 3));
     if (world.lives > 0 && world.respawn <= 0 && !world.awaitingEntry) {
       this.sprite(player,world.x,PLAYER_Y,0x75d6df);
     }
@@ -122,9 +122,7 @@ class Arcade extends Phaser.Scene {
         const progress = 1 - s.life / .5;
         const radius = 5 + progress * 27;
         this.g.lineStyle(2, 0xebdf58, 1 - progress);
-        this.g.strokeRect(s.x-radius,s.y-radius,radius*2,radius*2);
-        this.g.lineStyle(2, 0x9a872b, (1-progress)*.75);
-        this.g.strokeCircle(s.x,s.y,radius*.65);
+        this.g.strokeCircle(s.x,s.y,radius);
       } else {
         const progress = Math.min(1,(3 - s.life) / .6);
         this.g.fillStyle(s.color, 1);
@@ -148,7 +146,7 @@ class Arcade extends Phaser.Scene {
     const spare = Math.max(0,world.lives-1);
     if ($('lives').childElementCount!==spare) $('lives').innerHTML=spareSprite.repeat(spare);
     $('lives').setAttribute('aria-label', `${spare} spare ships`);
-    if (scores.status !== 'persistent') $('save-status').textContent = scores.status === 'session' ? 'TEMPORARY SAVE · EXPORT TO KEEP' : 'STORAGE UNAVAILABLE · EXPORT TO KEEP';
+    if (scores.status !== 'persistent') $('save-status').textContent = scores.status === 'session' ? 'TEMPORARY SAVE · ALT+SHIFT+E TO EXPORT' : 'STORAGE UNAVAILABLE · ALT+SHIFT+E TO EXPORT';
     const displayMode = world.mode === 'over' && world.respawn > 0 ? 'dying' : world.mode;
     if(previousMode !== displayMode){
       previousMode=displayMode;

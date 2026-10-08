@@ -10,9 +10,9 @@ Spare ships use the same sprite pattern and proportional screen size as the play
 
 Divers move at horizontal speed 150 and vertical speed 82.5, matching the measured video screen-space slope (28.8 degrees). These speeds stay fixed across waves; enemy bullet speed and attack pressure still increase. Positions advance at 30 Hz, a deliberate approximation of documented jerky movement, not a claim about exact original hardware timing. Random midair-turn probability remains tunable rather than source-verified.
 
-`src/scores.ts` validates scores, merges the highest local/cookie/session copy, writes redundant backups, and falls back to memory. Export/import JSON preserves the score when browser persistence is blocked. Storage state is visible in the page's score backup controls.
+`src/scores.ts` validates scores, merges the highest local/cookie/session copy, writes redundant backups, and falls back to memory. Export/import JSON preserves the score when browser persistence is blocked. A status message appears if storage is unavailable. Alt+Shift+E exports and Alt+Shift+I imports a score backup.
 
-Reference UI: unframed black screen, yellow score digits at the top, green spare ships and red wave number at bottom right. No branding bar, slogans, status strip, or control legend. Pause displays only PAUSED. Sound and score backup controls sit in a collapsed Settings menu. Player silhouette uses the reference's central turret, narrow stem, and flat wide base, with no exhaust effect.
+Reference UI: unframed black screen, yellow score digits at the top, green spare ships and red wave number at bottom right. No branding bar, slogans, status strip, or control legend. Pause displays only PAUSED. There is no Settings panel. Sound is always enabled after the starting gesture. Yellow divers have downward-facing horns; enemy explosions are a single expanding circle. Player silhouette uses the reference's central turret, narrow stem, and flat wide base, with no exhaust effect.
 
 Scoring uses row values confirmed by the original Emerson manual's page 4 table: formation 30/40/50/60 and diving 60/80/100/200. Video anomalies remain documented in docs/scoring.md. Do not reproduce repeated post-kill score bursts without new evidence establishing their cause.
 
