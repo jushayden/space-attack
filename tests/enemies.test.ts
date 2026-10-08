@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { World, difficulty, diveFireDelay, HEIGHT, SHOT_SPEED, WIDTH } from '../src/model.ts';
+import { World, difficulty, diveFireDelay, DIVE_TICK, DIVE_RATIO, HEIGHT, SHOT_SPEED, WIDTH } from '../src/model.ts';
 
 function divingWorld() {
   const world = new World(() => .5);
-  world.start();
+  world.start(); world.awaitingEntry = false; world.x = 400;
   world.diveTimer = 0;
   world.step(1 / 60);
   return world;
@@ -27,7 +27,7 @@ test('dive cycles choose two distinct enemies and replenish only vacant slots', 
 
 test('a lone remaining enemy can dive without creating a duplicate', () => {
   const world = new World(() => .5);
-  world.start();
+  world.start(); world.awaitingEntry = false; world.x = 400;
   world.enemies = world.enemies.slice(0, 1);
   world.diveTimer = 0;
   world.step(1 / 60);
@@ -79,7 +79,7 @@ test('each diver fires independently downward with shorter intervals at lower he
 
 test('formation enemies do not fire and returning divers rejoin their moving home without reward', () => {
   const world = new World(() => .5);
-  world.start();
+  world.start(); world.awaitingEntry = false; world.x = 400;
   world.diveTimer = 100;
   for (let frame = 0; frame < 180; frame++) world.step(1 / 60);
   assert.equal(world.bullets.length, 0);
@@ -98,4 +98,40 @@ test('enemy shots get faster beyond wave sixteen while remaining slower than pla
     assert.ok(difficulty(wave + 1).bulletSpeed > difficulty(wave).bulletSpeed);
     assert.ok(difficulty(wave).bulletSpeed < SHOT_SPEED);
   }
+});
+
+test('divers preserve their diagonal angle and speed across waves', () => {
+  for (const wave of [1, 5, 16, 100]) {
+    const world = new World(() => .5);
+    world.start(); world.awaitingEntry = false; world.x = 400;
+    world.wave = wave;
+    world.diveTimer = 0;
+    world.step(1 / 120);
+    const enemy = world.enemies.find(enemy => enemy.dive)!;
+    enemy.turnTimer = 10;
+    const before = {x:enemy.x,y:enemy.y};
+    world.step(DIVE_TICK);
+    assert.ok(Math.abs(Math.abs(enemy.x - before.x) - 5) < 1e-9);
+    assert.ok(Math.abs(enemy.y - before.y - 2.75) < 1e-9);
+    assert.ok(Math.abs(Math.abs((enemy.x - before.x) / (enemy.y - before.y)) - DIVE_RATIO) < 1e-9);
+  }
+});
+
+test('diver motion holds between ticks and advances one discrete step per tick', () => {
+  const world = divingWorld();
+  const enemy = world.enemies.find(enemy => enemy.dive)!;
+  enemy.turnTimer = 10;
+  const before = {x:enemy.x,y:enemy.y};
+  for (let frame = 0; frame < 3; frame++) {
+    world.step(DIVE_TICK / 4);
+    assert.equal(enemy.x, before.x);
+    assert.equal(enemy.y, before.y);
+  }
+  world.step(DIVE_TICK / 4);
+  assert.ok(Math.abs(enemy.x - before.x - 5) < 1e-9);
+  assert.ok(Math.abs(enemy.y - before.y - 2.75) < 1e-9);
+  const after = {x:enemy.x,y:enemy.y};
+  world.step(DIVE_TICK / 4);
+  assert.equal(enemy.x, after.x);
+  assert.equal(enemy.y, after.y);
 });

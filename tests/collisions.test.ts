@@ -4,7 +4,7 @@ import { World, PLAYER_Y } from '../src/model.ts';
 
 function world() {
   const w = new World(() => .5);
-  w.start();
+  w.start(); w.awaitingEntry = false; w.x = 400;
   w.diveTimer = 100;
   return w;
 }

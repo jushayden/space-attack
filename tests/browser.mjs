@@ -29,9 +29,16 @@ try {
   await page.screenshot({path:'../../work/title.png'});
   await page.getByRole('button',{name:'START GAME'}).click();
   await page.waitForFunction(() => window.spaceAttack.mode === 'playing');
+  assert.equal(await page.evaluate(() => window.spaceAttack.playerActive),false);
+  assert.equal(await page.evaluate(() => window.spaceAttack.respawn),0);
+  await enterSector('KeyD','left');
   assert.equal(await page.locator('#lives .ship').count(),2);
-  await page.keyboard.down('KeyA'); await page.waitForTimeout(180); await page.keyboard.up('KeyA');
-  assert.ok(await page.evaluate(() => window.spaceAttack.x < 390));
+  const entryX = await page.evaluate(() => window.spaceAttack.x);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(180); await page.keyboard.up('KeyD');
+  const movedRight = await page.evaluate(() => window.spaceAttack.x);
+  assert.ok(movedRight > entryX + 30);
+  await page.keyboard.down('KeyA'); await page.waitForTimeout(100); await page.keyboard.up('KeyA');
+  assert.ok(await page.evaluate(() => window.spaceAttack.x) < movedRight);
   await page.keyboard.down('KeyA'); await page.keyboard.down('ArrowRight');
   const x = await page.evaluate(() => window.spaceAttack.x); await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.spaceAttack.x),x);
@@ -96,6 +103,8 @@ try {
   assert.equal(await page.evaluate(() => window.spaceAttack.lives),3);
   assert.equal(await page.evaluate(() => window.spaceAttack.score),0);
   assert.equal(await page.evaluate(() => window.spaceAttack.wave),1);
+  assert.equal(await page.evaluate(() => window.spaceAttack.playerActive),false);
+  await enterSector('ArrowLeft','right');
   await page.evaluate(() => {localStorage.clear(); sessionStorage.clear();});
   assert.ok((await context.cookies()).some(cookie => cookie.name === 'space_attack_high' && cookie.value === '60'));
   await page.reload(); await page.waitForSelector('canvas');

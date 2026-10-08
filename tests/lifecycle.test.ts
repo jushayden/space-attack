@@ -6,6 +6,7 @@ function world() {
   const w = new World(() => .5);
   w.start();
   w.diveTimer = Infinity;
+  frames(w, 9, 1);
   return w;
 }
 
@@ -52,21 +53,27 @@ test('neutral and canceled direction keep the next ship inactive after the delay
   }
 });
 
-test('directional input enters from the opposite edge after the death delay', () => {
+test('right input slides from the left and left input appears at the right after death', () => {
   for (const move of [-1, 1]) {
     const w = world();
     hit(w);
     frames(w, 181);
-    w.step(1 / 60, move, true);
+    w.step(1 / 60, move);
     assert.equal(w.awaitingEntry, false);
-    assert.equal(w.entryDirection, move);
-    assert.equal(w.playerActive, false);
-    assert.equal(w.shot, null);
-    assert.ok(move > 0 ? w.x < 0 : w.x > WIDTH);
-    frames(w, 8);
+    if (move > 0) {
+      assert.equal(w.entryDirection, 1);
+      assert.equal(w.playerActive, false);
+      assert.ok(w.x < 0);
+      w.fire();
+      assert.equal(w.shot, null);
+      frames(w, 8);
+      assert.equal(w.x, 24);
+    } else {
+      assert.equal(w.playerActive, true);
+      assert.ok(w.x >= WIDTH - 30 && w.x <= WIDTH - 24);
+    }
     assert.equal(w.entryDirection, 0);
     assert.equal(w.playerActive, true);
-    assert.equal(w.x, move > 0 ? 24 : WIDTH - 24);
     w.fire();
     assert.ok(w.shot);
   }
@@ -133,7 +140,27 @@ test('final death holds its explosion for three seconds without allowing reentry
   assert.equal(w.playerActive, false);
   assert.equal(w.shot, null);
   w.start();
-  assert.equal(w.playerActive, true);
+  assert.equal(w.playerActive, false);
   assert.equal(w.lives, 3);
-  assert.equal(w.awaitingEntry, false);
+  assert.equal(w.awaitingEntry, true);
+  assert.equal(w.respawn, 0);
+  assert.equal(w.x, -20);
+  frames(w, 9, 1);
+  assert.equal(w.playerActive, true);
+});
+
+test('starting waits offscreen without a delay and canceled input does not enter', () => {
+  const w = new World(() => .5);
+  w.start();
+  assert.equal(w.x, -20);
+  assert.equal(w.awaitingEntry, true);
+  assert.equal(w.respawn, 0);
+  frames(w, 60, direction(new Set(['KeyA', 'ArrowRight'])), true);
+  assert.equal(w.x, -20);
+  assert.equal(w.playerActive, false);
+  assert.equal(w.shot, null);
+  assert.equal(w.enemies.some(enemy => enemy.dive), false);
+  w.step(1 / 60, -1);
+  assert.equal(w.playerActive, true);
+  assert.ok(w.x >= WIDTH - 30 && w.x <= WIDTH - 24);
 });

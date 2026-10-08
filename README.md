@@ -25,9 +25,9 @@ Open the URL printed by Vite. For a production build, run `npm run build`, then 
 
 Opposite directions cancel, including mixed keyboard bindings. Movement has constant speed and stops on release. Space and mouse share one projectile slot. A new shot becomes available after the previous shot hits or exits the screen.
 
-Each run starts with one active ship and two spares. Both ships die on player/enemy contact. Switching tabs or losing window focus pauses the game; return and resume explicitly.
+Each run starts with three ships, with the first waiting offscreen for directional input. Two spares appear at bottom right. Both ships die on player/enemy contact. Switching tabs or losing window focus pauses the game; return and resume explicitly.
 
-A destroyed player leaves an X and debris on screen for three seconds. After that, hold D or Right Arrow to enter from the left, or A or Left Arrow to enter from the right. Opposing inputs cancel and keep the ship waiting. On the last life, the same three-second death display precedes Game Over; Enter starts a fresh run.
+A destroyed player leaves an X and debris on screen for three seconds. After that, hold D or Right Arrow to slide in from the left, or A or Left Arrow to appear fully at the right edge, matching the entry asymmetry documented in the Arcadia guide. Opposing inputs cancel and keep the ship waiting. On the last life, the same three-second death display precedes Game Over; Enter starts a fresh run.
 
 Clearing a wave displays the next formation immediately and removes the active ship for three seconds, matching the death delay. After that delay, directional input brings the ship back in from the corresponding edge. Enemies do not begin diving until the ship has entered the playfield.
 
@@ -35,7 +35,7 @@ Clearing a wave displays the next formation immediately and removes the active s
 
 The 41 enemies occupy six rows: 2 yellow, 5 red, 7 green, and three rows of 9 red. The formation moves slowly from side to side. Up to two randomly selected enemies dive diagonally, bounce off the sides, and sometimes reverse direction in midair. Divers fire downward more often as they descend. Survivors return to their original formation slots without awarding points.
 
-Enemy projectile speed increases each wave and stays below player projectile speed. Dive speed and firing pressure also increase, with limits that preserve playability.
+Enemy projectile speed increases each wave and stays below player projectile speed. Firing pressure and dive frequency also increase, with limits that preserve playability. Divers retain the video's measured screen-space slope of approximately 28.8 degrees below horizontal across waves. Their positions advance in 30 Hz steps to recreate the guide's described jerkiness; the exact original update frequency is not documented.
 
 Formation rewards are 30 for lower red, 40 for green, 50 for upper red, and 60 for yellow. Diving rewards are 60, 80, 100, and 200 respectively. Each destroyed enemy awards points once. See [the scoring audit](docs/scoring.md) for timestamps, full-video HUD coverage, and remaining uncertainty in the reference.
 
@@ -52,4 +52,4 @@ GitHub Actions runs the unit tests and production build on pushes and pull reque
 
 ## Reference
 
-[Space Attack longplay](https://www.youtube.com/watch?v=jYIC8ADIArc). Sprites are drawn in code; no video frames or extracted game assets ship with the game. Fuel and extra-life bonuses from the recording are outside this version's requested rules. Desktop keyboard and mouse are required; touch controls are not implemented.
+[Space Attack longplay](https://www.youtube.com/watch?v=jYIC8ADIArc), [original Emerson manual](https://amigan.yatho.com/SpaceAttack-Emerson.pdf), and [Arcadia Gaming Guide](https://amigan.yatho.com/agg/). Sprites are drawn in code; no video frames or extracted game assets ship with the game. Fuel and extra-life bonuses are not implemented. Desktop keyboard and mouse are required; touch controls are not implemented.
